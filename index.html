@@ -303,6 +303,7 @@
     import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.7.0/+esm";
 
     const AGENT_ID = "agent_5301kpdv4sd9e15vcz4qpm8e7vrn";
+    const SHAREABLE_TOKEN = "cvtkn_6401krka92stfett8evfhc3bd1d2";
     const orb = document.getElementById("orb");
     const statusEl = document.getElementById("status");
     const startBtn = document.getElementById("startBtn");
@@ -333,63 +334,98 @@
       else if (state === "speaking") orb.classList.add("speaking");
     }
 
+    // callback comuni
+    const callbacks = {
+      onConnect: () => {
+        log("connesso");
+        setStatus("In linea con Marco", "live");
+        startBtn.style.display = "none";
+        endBtn.style.display = "inline-block";
+        setOrbState("listening");
+      },
+      onDisconnect: () => {
+        log("disconnesso");
+        setStatus("Chiamata terminata");
+        startBtn.style.display = "inline-block";
+        startBtn.disabled = false;
+        startBtn.textContent = "Nuova conversazione";
+        endBtn.style.display = "none";
+        setOrbState(null);
+        conversation = null;
+      },
+      onError: (e) => {
+        const m = (e && (e.message || e.error)) || String(e);
+        log("errore SDK: " + m);
+        err.textContent = "Errore: " + m;
+        setOrbState(null);
+        setStatus("Errore", "error");
+      },
+      onModeChange: ({ mode }) => {
+        log("mode → " + mode);
+        if (mode === "speaking") {
+          setStatus("Marco sta parlando", "live");
+          setOrbState("speaking");
+        } else if (mode === "listening") {
+          setStatus("In ascolto...", "live");
+          setOrbState("listening");
+        }
+      },
+      onMessage: (m) => log("msg: " + JSON.stringify(m).slice(0, 100)),
+      onStatusChange: (s) => log("status: " + JSON.stringify(s).slice(0, 100)),
+    };
+
+    async function tryStart(opts, label) {
+      log("tentativo " + label + " → " + JSON.stringify(Object.keys(opts)));
+      return await Conversation.startSession({ ...opts, ...callbacks });
+    }
+
     async function start() {
       err.textContent = "";
       startBtn.disabled = true;
       setStatus("Connessione...");
-      log("avvio");
+      log("=== avvio ===");
+      log("SDK Conversation: " + (typeof Conversation));
+      log("UA: " + navigator.userAgent.slice(0, 80));
 
       try {
         log("richiesta microfono");
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        log("microfono ok");
-
-        log("startSession con agentId=" + AGENT_ID);
-        conversation = await Conversation.startSession({
-          agentId: AGENT_ID,
-          onConnect: () => {
-            log("connesso");
-            setStatus("In linea con Marco", "live");
-            startBtn.style.display = "none";
-            endBtn.style.display = "inline-block";
-            setOrbState("listening");
-          },
-          onDisconnect: () => {
-            log("disconnesso");
-            setStatus("Chiamata terminata");
-            startBtn.style.display = "inline-block";
-            startBtn.disabled = false;
-            startBtn.textContent = "Nuova conversazione";
-            endBtn.style.display = "none";
-            setOrbState(null);
-            conversation = null;
-          },
-          onError: (e) => {
-            const m = e?.message || e?.error || String(e);
-            log("errore: " + m);
-            err.textContent = "Errore: " + m;
-            setOrbState(null);
-            setStatus("Errore", "error");
-          },
-          onModeChange: ({ mode }) => {
-            log("mode → " + mode);
-            if (mode === "speaking") {
-              setStatus("Marco sta parlando", "live");
-              setOrbState("speaking");
-            } else if (mode === "listening") {
-              setStatus("In ascolto...", "live");
-              setOrbState("listening");
-            }
-          },
-        });
-        log("sessione iniziata");
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        log("microfono OK, tracks=" + stream.getAudioTracks().length);
+        // Rilascio il test stream, l'SDK riacquisirà
+        stream.getTracks().forEach(t => t.stop());
       } catch (e) {
-        const m = e?.message || String(e);
-        log("eccezione: " + m);
-        err.textContent = "Impossibile avviare la chiamata. " + m + " — Riprova o controlla il permesso microfono.";
-        setStatus("Errore", "error");
+        log("microfono NEGATO: " + (e?.message || e));
+        err.textContent = "Microfono negato: " + (e?.message || e) + ". Concedi il permesso nelle impostazioni del browser e ricarica.";
+        setStatus("Microfono negato", "error");
         startBtn.disabled = false;
+        return;
       }
+
+      // Provo 3 strategie in fallback
+      const strategies = [
+        { agentId: AGENT_ID },
+        { conversationToken: SHAREABLE_TOKEN },
+        { agentId: AGENT_ID, connectionType: "webrtc" },
+      ];
+
+      for (let i = 0; i < strategies.length; i++) {
+        const s = strategies[i];
+        const label = "#" + (i+1) + " " + Object.keys(s).join("+");
+        try {
+          conversation = await tryStart(s, label);
+          log("✓ sessione avviata con " + label);
+          return; // success
+        } catch (e) {
+          const m = e?.message || String(e);
+          log("✗ " + label + " fallita: " + m);
+          // continua col prossimo
+        }
+      }
+
+      // Tutte fallite
+      err.textContent = "Impossibile avviare la conversazione. Apri ?debug=1 per i dettagli.";
+      setStatus("Errore", "error");
+      startBtn.disabled = false;
     }
 
     async function end() {
