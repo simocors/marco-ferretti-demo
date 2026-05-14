@@ -402,11 +402,13 @@
         return;
       }
 
-      // Provo 3 strategie in fallback
+      // FIX KEY: gli agent creati via API hanno branches → WebRTC si blocca su "connecting".
+      // Solo WebSocket funziona con agent che hanno branches.
+      // Vedi: https://github.com/elevenlabs/packages/issues/452
       const strategies = [
-        { agentId: AGENT_ID },
-        { conversationToken: SHAREABLE_TOKEN },
-        { agentId: AGENT_ID, connectionType: "webrtc" },
+        { agentId: AGENT_ID, connectionType: "websocket" },
+        { conversationToken: SHAREABLE_TOKEN, connectionType: "websocket" },
+        { agentId: AGENT_ID }, // fallback senza forzatura
       ];
 
       for (let i = 0; i < strategies.length; i++) {
