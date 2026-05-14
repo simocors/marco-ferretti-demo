@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Parla con Marco Ferretti — Telesales</title>
+  <meta name="description" content="Avvia una conversazione con Marco Ferretti, consulente AI vocale di Telesales." />
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://api.elevenlabs.io" />
+  <style>
+    :root {
+      --bg: #0b0d12;
+      --bg-soft: #131720;
+      --surface: #1a1f2b;
+      --text: #f3f5f9;
+      --text-muted: #8a93a6;
+      --accent: #d4a14a;
+      --accent-soft: #f2cf85;
+      --error: #ef4444;
+      --success: #22c55e;
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100vh; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(ellipse at top, #1a1f2e 0%, #0b0d12 60%);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    header {
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      font-size: 15px;
+    }
+    header .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+    main {
+      width: 100%;
+      max-width: 540px;
+      text-align: center;
+      padding-top: 40px;
+    }
+    h1 {
+      font-size: clamp(28px, 5vw, 40px);
+      margin: 0 0 12px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+    h1 .name { color: var(--accent); }
+    p.lead {
+      color: var(--text-muted);
+      font-size: 16px;
+      line-height: 1.55;
+      margin: 0 auto 36px;
+      max-width: 440px;
+    }
+    .orb-wrap {
+      position: relative;
+      width: 260px;
+      height: 260px;
+      margin: 0 auto 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .orb {
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, var(--accent-soft), var(--accent) 50%, #8b6a2e 100%);
+      box-shadow:
+        0 0 60px rgba(212, 161, 74, 0.35),
+        0 0 120px rgba(212, 161, 74, 0.15),
+        inset 0 0 60px rgba(0, 0, 0, 0.25);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      animation: float 6s ease-in-out infinite;
+    }
+    .orb.listening {
+      animation: pulse-listen 1.4s ease-in-out infinite;
+      box-shadow: 0 0 80px rgba(212, 161, 74, 0.6), 0 0 160px rgba(212, 161, 74, 0.3);
+    }
+    .orb.speaking {
+      animation: pulse-speak 0.6s ease-in-out infinite;
+      box-shadow: 0 0 100px rgba(245, 207, 133, 0.8), 0 0 200px rgba(245, 207, 133, 0.4);
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    @keyframes pulse-listen {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+    @keyframes pulse-speak {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+    .ring {
+      position: absolute;
+      border: 1px solid rgba(212, 161, 74, 0.25);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .ring.r1 { width: 260px; height: 260px; animation: ring 4s linear infinite; }
+    .ring.r2 { width: 290px; height: 290px; animation: ring 6s linear infinite reverse; opacity: 0.6; }
+    @keyframes ring {
+      0% { transform: rotate(0); opacity: 0.5; }
+      50% { opacity: 0.15; }
+      100% { transform: rotate(360deg); opacity: 0.5; }
+    }
+    .status {
+      font-size: 14px;
+      color: var(--text-muted);
+      min-height: 22px;
+      margin-bottom: 24px;
+      letter-spacing: 0.02em;
+    }
+    .status.live { color: var(--accent); }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+    button {
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 600;
+      padding: 16px 36px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+      letter-spacing: 0.01em;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button:not(:disabled):hover { transform: translateY(-2px); }
+    .btn-primary {
+      background: var(--accent);
+      color: #0b0d12;
+      box-shadow: 0 8px 30px rgba(212, 161, 74, 0.35);
+    }
+    .btn-primary:not(:disabled):hover { background: var(--accent-soft); }
+    .btn-end {
+      background: var(--error);
+      color: white;
+      box-shadow: 0 8px 30px rgba(239, 68, 68, 0.35);
+    }
+    .hint {
+      margin-top: 18px;
+      font-size: 12px;
+      color: var(--text-muted);
+      max-width: 420px;
+      line-height: 1.5;
+    }
+    .hint a { color: var(--accent); text-decoration: none; }
+    footer {
+      position: absolute;
+      bottom: 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+      opacity: 0.6;
+    }
+    .err {
+      color: var(--error);
+      font-size: 13px;
+      margin-top: 12px;
+      max-width: 420px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="dot"></span>
+    <span>TELESALES</span>
+  </header>
+
+  <main>
+    <h1>Parla con <span class="name">Marco Ferretti</span></h1>
+    <p class="lead">Il nostro consulente vocale AI. Clicca, parla, raccontagli cosa ti serve — Marco è qui per ascoltarti e aiutarti.</p>
+
+    <div class="orb-wrap">
+      <div class="ring r1"></div>
+      <div class="ring r2"></div>
+      <div class="orb" id="orb"></div>
+    </div>
+
+    <div class="status" id="status">Pronto a iniziare</div>
+
+    <div class="controls">
+      <button class="btn-primary" id="startBtn">Inizia la conversazione</button>
+      <button class="btn-end" id="endBtn" style="display:none;">Termina chiamata</button>
+    </div>
+
+    <p class="hint">Cliccando "Inizia la conversazione" autorizzi l'utilizzo del microfono. La conversazione potrà essere registrata per finalità di qualità del servizio.</p>
+    <div class="err" id="err"></div>
+  </main>
+
+  <footer>© Telesales · Marco Ferretti AI</footer>
+
+  <script type="module">
+    import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@latest/+esm";
+
+    const AGENT_ID = "agent_5301kpdv4sd9e15vcz4qpm8e7vrn";
+    const orb = document.getElementById("orb");
+    const status = document.getElementById("status");
+    const startBtn = document.getElementById("startBtn");
+    const endBtn = document.getElementById("endBtn");
+    const err = document.getElementById("err");
+
+    let conversation = null;
+
+    function setStatus(text, live = false) {
+      status.textContent = text;
+      status.classList.toggle("live", live);
+    }
+
+    function setOrbState(state) {
+      orb.classList.remove("listening", "speaking");
+      if (state === "listening") orb.classList.add("listening");
+      else if (state === "speaking") orb.classList.add("speaking");
+    }
+
+    async function start() {
+      err.textContent = "";
+      startBtn.disabled = true;
+      setStatus("Connessione in corso...");
+      try {
+        // Richiede permesso microfono
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        conversation = await Conversation.startSession({
+          agentId: AGENT_ID,
+          onConnect: () => {
+            setStatus("In linea con Marco", true);
+            startBtn.style.display = "none";
+            endBtn.style.display = "inline-block";
+            setOrbState("listening");
+          },
+          onDisconnect: () => {
+            setStatus("Chiamata terminata");
+            startBtn.style.display = "inline-block";
+            startBtn.disabled = false;
+            startBtn.textContent = "Nuova conversazione";
+            endBtn.style.display = "none";
+            setOrbState(null);
+          },
+          onError: (e) => {
+            console.error(e);
+            err.textContent = "Errore: " + (e?.message || e);
+            setOrbState(null);
+          },
+          onModeChange: ({ mode }) => {
+            // mode: "listening" | "speaking"
+            if (mode === "speaking") {
+              setStatus("Marco sta parlando", true);
+              setOrbState("speaking");
+            } else if (mode === "listening") {
+              setStatus("In ascolto...", true);
+              setOrbState("listening");
+            }
+          },
+        });
+      } catch (e) {
+        console.error(e);
+        err.textContent =
+          "Impossibile avviare la conversazione. Verifica i permessi del microfono e riprova. " +
+          (e?.message ? "(" + e.message + ")" : "");
+        setStatus("Pronto a iniziare");
+        startBtn.disabled = false;
+        setOrbState(null);
+      }
+    }
+
+    async function end() {
+      if (conversation) {
+        try { await conversation.endSession(); } catch (e) { console.error(e); }
+        conversation = null;
+      }
+    }
+
+    startBtn.addEventListener("click", start);
+    endBtn.addEventListener("click", end);
+  </script>
+</body>
+</html>
